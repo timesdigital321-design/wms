@@ -1,0 +1,499 @@
+[
+  {
+    "id": "aaa93061-5561-418e-85c5-5bfbdac97e2c",
+    "datetime": "2026-06-18T15:45:41",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "46b89390-f7b1-4f1d-89df-72791af843ed",
+    "datetime": "2026-06-18T15:56:20",
+    "username": "admin",
+    "action": "File upload started",
+    "category": "Files",
+    "details": "Copy of inventory_template.xlsx (inventory)",
+    "status": "info",
+    "meta": {
+      "file_id": "0e87d8f3-271f-483b-ab4a-d902519f38c3"
+    }
+  },
+  {
+    "id": "58864418-3ffd-430f-b8d6-5237d634d15f",
+    "datetime": "2026-06-18T15:56:20",
+    "username": "admin",
+    "action": "File uploaded",
+    "category": "Files",
+    "details": "Copy of inventory_template.xlsx (18.4 KB)",
+    "status": "success",
+    "meta": {
+      "file_id": "0e87d8f3-271f-483b-ab4a-d902519f38c3"
+    }
+  },
+  {
+    "id": "c16b87b5-8ef2-4c0e-ae39-6e434e80c024",
+    "datetime": "2026-06-18T15:56:20",
+    "username": "admin",
+    "action": "Scanning file",
+    "category": "Files",
+    "details": "Copy of inventory_template.xlsx",
+    "status": "info",
+    "meta": {
+      "file_id": "0e87d8f3-271f-483b-ab4a-d902519f38c3"
+    }
+  },
+  {
+    "id": "ac9557da-417d-4639-a151-74ed60130851",
+    "datetime": "2026-06-18T15:56:20",
+    "username": "admin",
+    "action": "File scan passed",
+    "category": "Files",
+    "details": "Copy of inventory_template.xlsx",
+    "status": "success",
+    "meta": {
+      "file_id": "0e87d8f3-271f-483b-ab4a-d902519f38c3"
+    }
+  },
+  {
+    "id": "5b3c7cf9-2316-4241-b054-d38a0d9cd25a",
+    "datetime": "2026-06-18T15:56:20",
+    "username": "admin",
+    "action": "Processing file",
+    "category": "Files",
+    "details": "Copy of inventory_template.xlsx \u2014 importing as inventory",
+    "status": "info",
+    "meta": {
+      "file_id": "0e87d8f3-271f-483b-ab4a-d902519f38c3"
+    }
+  },
+  {
+    "id": "ebf53635-26c1-412f-ad5c-3c01842119b1",
+    "datetime": "2026-06-18T15:56:21",
+    "username": "admin",
+    "action": "File processing done",
+    "category": "Files",
+    "details": "Copy of inventory_template.xlsx \u2014 120 added, 6 updated, 0 skipped",
+    "status": "success",
+    "meta": {
+      "file_id": "0e87d8f3-271f-483b-ab4a-d902519f38c3"
+    }
+  },
+  {
+    "id": "2cf864ac-25a5-473b-8a71-26e6d8a8c1d3",
+    "datetime": "2026-06-18T15:56:59",
+    "username": "admin",
+    "action": "Deleted inventory item",
+    "category": "Inventory",
+    "details": "ELC-001 \u2014 Motor Controller Unit",
+    "status": "success"
+  },
+  {
+    "id": "519aff8f-bad1-4605-bc18-543362ab0722",
+    "datetime": "2026-06-18T16:24:31",
+    "username": "staff",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Staff",
+    "status": "success"
+  },
+  {
+    "id": "ac3a4038-5157-4f99-a56f-5ff8f312a56d",
+    "datetime": "2026-06-18T16:25:24",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "bf4c7706-447b-4a25-9fbd-5fece4903506",
+    "datetime": "2026-06-18T16:25:56",
+    "username": "admin",
+    "action": "Updated user",
+    "category": "Users",
+    "details": "Ahmed Al-Rashid (staff)",
+    "status": "success"
+  },
+  {
+    "id": "c426c19f-696b-4db1-aaca-c26edcfc7f21",
+    "datetime": "2026-06-18T16:29:42",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "72be9bd9-efe7-47a2-9194-5932cd12b31f",
+    "datetime": "2026-06-18T16:30:23",
+    "username": "admin",
+    "action": "Created user",
+    "category": "Users",
+    "details": "mohds (mm) \u2014 role: Staff",
+    "status": "success"
+  },
+  {
+    "id": "1922b4d5-a9f9-4fd2-a835-fb2c0f15252b",
+    "datetime": "2026-06-18T16:30:39",
+    "username": "mm",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Staff",
+    "status": "success"
+  },
+  {
+    "id": "86591ba8-c6a7-41f6-b267-86ce1de35f81",
+    "datetime": "2026-06-18T16:31:28",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "cc017483-ff5d-4196-95f4-bc4227bb2f7a",
+    "datetime": "2026-06-18T16:31:57",
+    "username": "admin",
+    "action": "Updated user",
+    "category": "Users",
+    "details": "Mohammad Siddiq (admin)",
+    "status": "success"
+  },
+  {
+    "id": "c2d6eacd-08eb-4648-8ac6-cd9c2f36e597",
+    "datetime": "2026-06-18T19:30:14",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "38947db5-a63f-46f2-a642-b96ea5f92a9c",
+    "datetime": "2026-06-18T23:14:46",
+    "username": "admin",
+    "action": "Stock IN",
+    "category": "Stock In/Out",
+    "details": "PKG-001 \u2014 qty 10",
+    "status": "success"
+  },
+  {
+    "id": "1f2ec26c-5070-4963-bbb7-b4ee352de2fc",
+    "datetime": "2026-06-19T08:10:38",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "270e8db8-a865-475d-9544-93b6923e62da",
+    "datetime": "2026-06-19T08:22:34",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "13e4a08a-1848-4e21-b111-f07103a87fb3",
+    "datetime": "2026-06-19T08:48:13",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "66df2a82-c21f-4b87-95f8-5e124fbc4cf6",
+    "datetime": "2026-06-19T08:52:09",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "8c85b747-dd20-418b-b70f-1e6d2f4e8f9a",
+    "datetime": "2026-06-19T09:04:01",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "3b2c8908-e03d-4308-9b06-abd930370b42",
+    "datetime": "2026-06-19T09:13:50",
+    "username": "admin",
+    "action": "Logged out",
+    "category": "Auth",
+    "details": "",
+    "status": "success"
+  },
+  {
+    "id": "b6f638cf-27a1-469a-8a4c-e5819237ae1b",
+    "datetime": "2026-06-19T09:13:56",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "c49e42bb-34e0-43ed-9e2f-8cdec9c448b4",
+    "datetime": "2026-06-19T09:15:49",
+    "username": "admin",
+    "action": "Updated template headers",
+    "category": "Templates",
+    "details": "billing.amount=Amount (SAR); billing.bill_num=Bill No; billing.created_by=Created By; billing.customer=Customer; billing.date=Date; billing.status=Status; daily_report.by=Handled By; daily_report.customer_name=Customer; daily_report.date=Date; daily_report.name=Item Name",
+    "status": "success"
+  },
+  {
+    "id": "7f788cde-e95d-4f7a-a20b-0723a7bbdf7f",
+    "datetime": "2026-06-19T09:16:15",
+    "username": "admin",
+    "action": "Exported report",
+    "category": "Export",
+    "details": "range:week 2026-06-15~2026-06-19",
+    "status": "success"
+  },
+  {
+    "id": "b7c36a78-623f-4d3b-a35f-64a9062d2935",
+    "datetime": "2026-06-19T09:16:36",
+    "username": "admin",
+    "action": "Exported all-users summary",
+    "category": "Export",
+    "details": "2026-06-15~2026-06-19",
+    "status": "success"
+  },
+  {
+    "id": "ecd8d383-07a4-4134-a387-4794d39304bc",
+    "datetime": "2026-06-19T09:18:07",
+    "username": "admin",
+    "action": "Bulk deleted inventory",
+    "category": "Inventory",
+    "details": "0 items removed",
+    "status": "success"
+  },
+  {
+    "id": "8883e57c-8c05-4c8e-84eb-4ea982a49bda",
+    "datetime": "2026-06-19T14:12:17",
+    "username": "admin",
+    "action": "Login failed",
+    "category": "Auth",
+    "details": "Invalid credentials",
+    "status": "error"
+  },
+  {
+    "id": "c43fc083-9d81-436b-ba90-d9056fb049de",
+    "datetime": "2026-06-19T14:12:26",
+    "username": "admin",
+    "action": "Login failed",
+    "category": "Auth",
+    "details": "Invalid credentials",
+    "status": "error"
+  },
+  {
+    "id": "4fe3c2ae-15a3-4601-89f0-3f25cd4fb048",
+    "datetime": "2026-06-19T14:12:32",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "df6c2fff-3367-4c25-83b6-4729dd02b767",
+    "datetime": "2026-06-19T14:14:20",
+    "username": "admin",
+    "action": "Bulk deleted inventory",
+    "category": "Inventory",
+    "details": "0 items removed",
+    "status": "success"
+  },
+  {
+    "id": "92c6b297-1c45-4463-bd1c-6ab76cbd737f",
+    "datetime": "2026-06-19T14:18:08",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "e5f9c078-d6fe-4ae6-9114-065dcda625e2",
+    "datetime": "2026-06-19T14:20:18",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "1cd7e50d-0f8a-40f4-aced-1eb0b017b093",
+    "datetime": "2026-06-19T19:26:03",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "7b627b6d-916a-4fc9-bb87-6476073fe2cf",
+    "datetime": "2026-06-19T19:26:03",
+    "username": "admin",
+    "action": "Exported inventory",
+    "category": "Export",
+    "details": "127 rows",
+    "status": "success"
+  },
+  {
+    "id": "6c40a8ae-ff3c-405a-a12a-750e9cd8504f",
+    "datetime": "2026-06-19T19:26:03",
+    "username": "admin",
+    "action": "Created backup",
+    "category": "Admin",
+    "details": "backup_20260619_192603.zip",
+    "status": "success"
+  },
+  {
+    "id": "b3aee340-3a96-4b85-82af-354ca7ad69dd",
+    "datetime": "2026-06-19T21:47:32",
+    "username": "admin",
+    "action": "Bulk deleted inventory",
+    "category": "Inventory",
+    "details": "0 items removed",
+    "status": "success"
+  },
+  {
+    "id": "de403d8f-0057-4bf0-b8ff-b1612a307cd7",
+    "datetime": "2026-06-19T21:48:33",
+    "username": "admin",
+    "action": "Logged out",
+    "category": "Auth",
+    "details": "",
+    "status": "success"
+  },
+  {
+    "id": "13842f36-b0db-4eeb-ab6d-4ad779044ece",
+    "datetime": "2026-06-19T21:48:58",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "2c11abc6-60f0-4cdc-bd9c-2511cd0ea0a8",
+    "datetime": "2026-06-19T21:52:46",
+    "username": "admin",
+    "action": "Exported inventory",
+    "category": "Export",
+    "details": "127 rows",
+    "status": "success"
+  },
+  {
+    "id": "1565a4b0-15cc-43d1-8eff-ac35846cbfa6",
+    "datetime": "2026-06-19T21:58:58",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "2e10e659-5543-429d-9acb-7fdcd760bd1c",
+    "datetime": "2026-06-20T02:01:26",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "0b0e12fc-fc86-48e8-ab27-87d8925459c7",
+    "datetime": "2026-06-20T02:01:26",
+    "username": "admin",
+    "action": "Downloaded billing export",
+    "category": "File Log",
+    "details": "billing_export.xlsx",
+    "status": "success",
+    "meta": {
+      "file_type": "billing",
+      "file_status": "done",
+      "direction": "download"
+    }
+  },
+  {
+    "id": "fdebda19-4da5-44c3-b7dd-8c6c9f228134",
+    "datetime": "2026-06-20T02:02:02",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "529d44c1-aed3-4dbf-9585-c53da74196ef",
+    "datetime": "2026-06-20T02:05:10",
+    "username": "admin",
+    "action": "Downloaded template",
+    "category": "File Log",
+    "details": "inventory_template.xlsx",
+    "status": "success",
+    "meta": {
+      "file_type": "template",
+      "file_status": "done",
+      "direction": "download",
+      "file_name": "inventory_template.xlsx"
+    }
+  },
+  {
+    "id": "c86c145f-d2c1-4e51-8ac2-8415cb80b729",
+    "datetime": "2026-06-20T02:21:06",
+    "username": "admin",
+    "action": "Logged in",
+    "category": "Auth",
+    "details": "Role: Admin",
+    "status": "success"
+  },
+  {
+    "id": "ebac6407-3cf1-41fe-ba1a-eec12fe4930f",
+    "datetime": "2026-06-20T02:22:20",
+    "username": "admin",
+    "action": "Reset template headers",
+    "category": "Templates",
+    "details": "Template headers restored to defaults",
+    "status": "warning"
+  },
+  {
+    "id": "8dc66840-4e56-4658-b548-94d55ab8efe6",
+    "datetime": "2026-06-20T02:22:51",
+    "username": "admin",
+    "action": "Cleared stock data",
+    "category": "Admin",
+    "details": "All inventory and stock transactions were deleted",
+    "status": "warning"
+  },
+  {
+    "id": "5c2c3e4b-af71-46c6-8f75-c5af11b27db5",
+    "datetime": "2026-06-20T02:22:55",
+    "username": "admin",
+    "action": "Cleared billing data",
+    "category": "Admin",
+    "details": "All billing records were deleted",
+    "status": "warning"
+  },
+  {
+    "id": "c0230a08-2a76-46a7-bd24-e25fd21b79ce",
+    "datetime": "2026-06-20T02:23:09",
+    "username": "admin",
+    "action": "Logged out",
+    "category": "Auth",
+    "details": "",
+    "status": "success"
+  }
+]

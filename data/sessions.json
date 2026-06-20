@@ -1,0 +1,270 @@
+{
+  "60f05198-978a-41cf-b9e7-5edf453c293d": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "9d068447-b91d-4d9c-97e6-69b992d16e99": {
+    "user_id": "u2",
+    "username": "staff",
+    "name": "Ahmed Al-Rashid",
+    "role": "Staff",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Activity Log"
+    ]
+  },
+  "e73c5ef3-330a-4a25-b5ee-8292de1e3e94": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "35502c4c-1cd8-4b47-9a0c-928bbe871029": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "0552cf6f-e347-4806-8a23-d87b98c808b2": {
+    "user_id": "abafbbe5-16e9-46b6-9900-a3692a0e67c6",
+    "username": "mm",
+    "name": "mohds",
+    "role": "Staff",
+    "access": [
+      "Dashboard",
+      "Activity Log",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "File Upload"
+    ]
+  },
+  "3671a7b3-7e0d-4b14-b32d-34aca1b97ba3": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "e6b0b0fa-2668-4b8b-a2a7-9644f7a29158": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "018985e3-4e1d-4925-b331-c529f5b5e137": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "a18fa0df-4542-42f8-81a0-aa87407ee90d": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "71af1ac1-f19d-4581-bc3c-223acfe55218": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "940c0ee2-dc1a-4f8b-9088-34f5b3f4b2d7": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "accf4f17-69c6-49db-9a3e-2a08c68a85a1": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "4bae4f5f-50f6-4091-a6e0-834d2394ede2": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "fec86424-d8ca-42e5-b995-2865365b2446": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "cb8303d9-b525-4815-8c80-9174ce1f2986": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "1af50f43-c78a-4f22-9865-bf64917a5936": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "67f93867-82bc-447b-905a-ea98e95038e1": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ]
+  },
+  "04497ca5-63e6-4188-9647-2434cb570e0e": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ],
+    "issued_at": "2026-06-20T02:01:26",
+    "expires_at": "2026-06-20T05:01:26"
+  },
+  "a83363c2-2d1d-477a-89e2-5561cdbec33b": {
+    "user_id": "u1",
+    "username": "admin",
+    "name": "Mohammad Siddiq",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ],
+    "issued_at": "2026-06-20T02:21:06",
+    "expires_at": "2026-06-20T05:21:06"
+  }
+}

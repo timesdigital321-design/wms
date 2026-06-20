@@ -1,0 +1,20 @@
+[
+  {
+    "id": "0e87d8f3-271f-483b-ab4a-d902519f38c3",
+    "filename": "inventory_2026-06-18_fb5dd701.xlsx",
+    "original_name": "Copy of inventory_template.xlsx",
+    "type": "inventory",
+    "date": "2026-06-18",
+    "size_kb": 18.4,
+    "uploaded_by": "admin",
+    "uploaded_at": "2026-06-18T15:56:20",
+    "status": "done",
+    "status_updated_at": "2026-06-18T15:56:21",
+    "import_result": {
+      "added": 120,
+      "updated": 6,
+      "skipped": 0,
+      "errors": []
+    }
+  }
+]

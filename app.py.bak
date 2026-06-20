@@ -1,0 +1,1138 @@
+"""
+Mohammad Siddiq Warehouse Management System — Backend API
+Flask REST API with file storage, user management, and inventory tracking.
+"""
+
+import os, json, hashlib, datetime, shutil, uuid, re
+from pathlib import Path
+from functools import wraps
+from flask import Flask, request, jsonify, send_file, send_from_directory
+import openpyxl
+
+# ── Config ───────────────────────────────────────────────────────────────────
+BASE_DIR   = Path(__file__).parent.parent
+DATA_DIR   = BASE_DIR / "data"
+FILES_DIR  = BASE_DIR / "uploaded_files"
+TEMPL_DIR  = BASE_DIR / "excel_templates"
+
+DATA_DIR.mkdir(exist_ok=True)
+FILES_DIR.mkdir(exist_ok=True)
+
+app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # 20 MB
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+def load_json(path, default):
+    if Path(path).exists():
+        with open(path) as f:
+            return json.load(f)
+    return default
+
+def save_json(path, data):
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2, default=str)
+
+def hash_pw(pw):
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+def now_str():
+    return datetime.datetime.now().isoformat(timespec="seconds")
+
+def today_str():
+    return datetime.date.today().isoformat()
+
+# ── Activity Log ──────────────────────────────────────────────────────────────
+# A single, append-only audit trail. Every meaningful action across the app
+# (auth, inventory, transactions, billing, users, settings, files) writes one
+# entry here. The file-processing pipeline (upload/scan/parse/done) also logs
+# its individual stages so the Files page can show real-time-ish status.
+MAX_LOG_ENTRIES = 5000
+
+def log_activity(username, action, category, details="", status="success", meta=None):
+    """Append one entry to the activity log. Never raises — logging must not break a request."""
+    try:
+        logs = load_json(LOGS_FILE, [])
+        entry = {
+            "id": str(uuid.uuid4()),
+            "datetime": now_str(),
+            "username": username or "system",
+            "action": action,
+            "category": category,
+            "details": details,
+            "status": status,
+        }
+        if meta:
+            entry["meta"] = meta
+        logs.append(entry)
+        if len(logs) > MAX_LOG_ENTRIES:
+            logs = logs[-MAX_LOG_ENTRIES:]
+        save_json(LOGS_FILE, logs)
+        return entry
+    except Exception:
+        return None
+
+# ── CORS ─────────────────────────────────────────────────────────────────────
+@app.after_request
+def add_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    return response
+
+@app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
+@app.route("/<path:path>", methods=["OPTIONS"])
+def options_handler(path):
+    return jsonify({}), 200
+
+# ── Data Stores ───────────────────────────────────────────────────────────────
+USERS_FILE       = DATA_DIR / "users.json"
+INVENTORY_FILE   = DATA_DIR / "inventory.json"
+TRANSACTIONS_FILE= DATA_DIR / "transactions.json"
+BILLS_FILE       = DATA_DIR / "bills.json"
+SETTINGS_FILE    = DATA_DIR / "settings.json"
+FILES_META_FILE  = DATA_DIR / "files_meta.json"
+SESSIONS_FILE    = DATA_DIR / "sessions.json"
+LOGS_FILE        = DATA_DIR / "activity_logs.json"
+
+MODULES = ["Dashboard", "Inventory", "Stock In/Out", "Billing", "Reports", "Activity Log"]
+
+def default_users():
+    return [
+        {
+            "id": "u1", "name": "Mohammad Siddiq", "username": "admin",
+            "password": hash_pw("admin123"), "role": "Admin",
+            "access": MODULES, "status": "Active",
+            "created": today_str(), "last_login": None
+        },
+        {
+            "id": "u2", "name": "Ahmed Al-Rashid", "username": "staff",
+            "password": hash_pw("staff123"), "role": "Staff",
+            "access": ["Dashboard", "Inventory", "Stock In/Out", "Activity Log"],
+            "status": "Active", "created": today_str(), "last_login": None
+        }
+    ]
+
+def default_inventory():
+    return [
+        {"sku":"ELC-001","name":"Motor Controller Unit","category":"Electronics","qty":245,"unit":"PCS","min_level":50,"location":"A-01-1","unit_cost":180.0,"updated":today_str()},
+        {"sku":"ELC-002","name":"Relay Switch 24V","category":"Electronics","qty":18,"unit":"PCS","min_level":30,"location":"A-01-2","unit_cost":45.0,"updated":today_str()},
+        {"sku":"SPA-001","name":"Bearing SKF 6205","category":"Spare Parts","qty":320,"unit":"PCS","min_level":100,"location":"B-02-1","unit_cost":28.0,"updated":today_str()},
+        {"sku":"SPA-002","name":"Hydraulic Seal Kit","category":"Spare Parts","qty":8,"unit":"SET","min_level":20,"location":"B-02-3","unit_cost":220.0,"updated":today_str()},
+        {"sku":"RAW-001","name":"Steel Sheet 2mm","category":"Raw Materials","qty":1200,"unit":"KG","min_level":500,"location":"C-01-1","unit_cost":3.5,"updated":today_str()},
+        {"sku":"FIN-001","name":"Finished Panel A4","category":"Finished Goods","qty":560,"unit":"PCS","min_level":200,"location":"D-01-1","unit_cost":95.0,"updated":today_str()},
+        {"sku":"PKG-001","name":"Cardboard Box L","category":"Packaging","qty":2400,"unit":"PCS","min_level":1000,"location":"E-01-1","unit_cost":2.1,"updated":today_str()},
+        {"sku":"PKG-002","name":"Bubble Wrap Roll","category":"Packaging","qty":45,"unit":"ROLL","min_level":20,"location":"E-01-2","unit_cost":85.0,"updated":today_str()},
+    ]
+
+def default_transactions():
+    return [
+        {"id":"t1","datetime":now_str(),"type":"IN","sku":"ELC-001","name":"Motor Controller Unit","qty":50,"ref":"PO-2024-128","party":"Al-Noor Supplies","by":"admin","status":"Completed","notes":""},
+        {"id":"t2","datetime":now_str(),"type":"OUT","sku":"FIN-001","name":"Finished Panel A4","qty":100,"ref":"DO-2024-214","party":"Gulf Industries","by":"staff","status":"Completed","notes":""},
+        {"id":"t3","datetime":now_str(),"type":"IN","sku":"PKG-001","name":"Cardboard Box L","qty":500,"ref":"PO-2024-127","party":"Riyadh Packaging Co","by":"admin","status":"Completed","notes":""},
+    ]
+
+def default_bills():
+    return [
+        {"id":"b1","num":"BILL-0284","date":today_str(),"customer":"Gulf Industries LLC","items":3,"amount":18400,"status":"Pending","notes":""},
+        {"id":"b2","num":"BILL-0283","date":today_str(),"customer":"Industrial Corp KSA","items":5,"amount":42800,"status":"Paid","notes":""},
+        {"id":"b3","num":"BILL-0282","date":today_str(),"customer":"Metal Works Ltd","items":2,"amount":7600,"status":"Paid","notes":""},
+        {"id":"b4","num":"BILL-0281","date":today_str(),"customer":"Riyadh Tech Co","items":8,"amount":31200,"status":"Overdue","notes":""},
+    ]
+
+def default_settings():
+    return {
+        "warehouse_name": "Mohammad Siddiq Warehouse",
+        "location": "Riyadh, Saudi Arabia",
+        "manager": "Mohammad Siddiq",
+        "phone": "+966 5X XXX XXXX",
+        "currency": "SAR",
+        "date_format": "DD/MM/YYYY",
+        "retention_days": 30,
+        "vat_percent": 15
+    }
+
+# Initialise data files if absent
+for f, default in [
+    (USERS_FILE, default_users()), (INVENTORY_FILE, default_inventory()),
+    (TRANSACTIONS_FILE, default_transactions()), (BILLS_FILE, default_bills()),
+    (SETTINGS_FILE, default_settings()), (FILES_META_FILE, []), (SESSIONS_FILE, {}),
+    (LOGS_FILE, [])
+]:
+    if not f.exists():
+        save_json(f, default)
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+def require_auth(fn):
+    @wraps(fn)
+    def wrapped(*args, **kwargs):
+        token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        sessions = load_json(SESSIONS_FILE, {})
+        if token not in sessions:
+            return jsonify({"error": "Unauthorized"}), 401
+        request.current_user = sessions[token]
+        return fn(*args, **kwargs)
+    return wrapped
+
+def require_admin(fn):
+    @wraps(fn)
+    @require_auth
+    def wrapped(*args, **kwargs):
+        if request.current_user.get("role") != "Admin":
+            return jsonify({"error": "Admin access required"}), 403
+        return fn(*args, **kwargs)
+    return wrapped
+
+@app.route("/api/auth/login", methods=["POST"])
+def login():
+    data = request.json or {}
+    username = data.get("username", "").strip().lower()
+    password = data.get("password", "")
+    users = load_json(USERS_FILE, [])
+    user = next((u for u in users if u["username"].lower() == username), None)
+    if not user or user["password"] != hash_pw(password):
+        log_activity(username or "unknown", "Login failed", "Auth", "Invalid username or password", status="error")
+        return jsonify({"error": "Invalid username or password"}), 401
+    if user["status"] != "Active":
+        log_activity(username, "Login blocked", "Auth", "Account is inactive", status="error")
+        return jsonify({"error": "Account is inactive"}), 403
+    # Update last login
+    user["last_login"] = now_str()
+    save_json(USERS_FILE, users)
+    # Create session token
+    token = str(uuid.uuid4())
+    sessions = load_json(SESSIONS_FILE, {})
+    sessions[token] = {
+        "user_id": user["id"], "username": user["username"],
+        "name": user["name"], "role": user["role"], "access": user["access"]
+    }
+    save_json(SESSIONS_FILE, sessions)
+    log_activity(user["username"], "Logged in", "Auth", f"Role: {user['role']}")
+    return jsonify({
+        "token": token,
+        "user": {"id": user["id"], "name": user["name"],
+                 "username": user["username"], "role": user["role"],
+                 "access": user["access"]}
+    })
+
+@app.route("/api/auth/logout", methods=["POST"])
+@require_auth
+def logout():
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    sessions = load_json(SESSIONS_FILE, {})
+    sessions.pop(token, None)
+    save_json(SESSIONS_FILE, sessions)
+    log_activity(request.current_user["username"], "Logged out", "Auth")
+    return jsonify({"message": "Logged out"})
+
+@app.route("/api/auth/me", methods=["GET"])
+@require_auth
+def me():
+    return jsonify(request.current_user)
+
+# ── Users ─────────────────────────────────────────────────────────────────────
+@app.route("/api/users", methods=["GET"])
+@require_admin
+def get_users():
+    users = load_json(USERS_FILE, [])
+    # Strip passwords from response
+    safe = [{k: v for k, v in u.items() if k != "password"} for u in users]
+    return jsonify(safe)
+
+@app.route("/api/users", methods=["POST"])
+@require_admin
+def create_user():
+    data = request.json or {}
+    users = load_json(USERS_FILE, [])
+    if any(u["username"].lower() == data.get("username","").lower() for u in users):
+        return jsonify({"error": "Username already exists"}), 409
+    new_user = {
+        "id": str(uuid.uuid4()), "name": data.get("name",""),
+        "username": data.get("username","").strip().lower(),
+        "password": hash_pw(data.get("password","password123")),
+        "role": data.get("role","Staff"),
+        "access": data.get("access", ["Dashboard"]),
+        "status": "Active", "created": today_str(), "last_login": None
+    }
+    users.append(new_user)
+    save_json(USERS_FILE, users)
+    log_activity(request.current_user["username"], "Created user", "Users",
+                 f"{new_user['name']} ({new_user['username']}) — role: {new_user['role']}")
+    return jsonify({k: v for k, v in new_user.items() if k != "password"}), 201
+
+@app.route("/api/users/<uid>", methods=["PUT"])
+@require_admin
+def update_user(uid):
+    data = request.json or {}
+    users = load_json(USERS_FILE, [])
+    user = next((u for u in users if u["id"] == uid), None)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    for field in ["name", "role", "access", "status"]:
+        if field in data:
+            user[field] = data[field]
+    if "password" in data and data["password"]:
+        user["password"] = hash_pw(data["password"])
+    save_json(USERS_FILE, users)
+    log_activity(request.current_user["username"], "Updated user", "Users",
+                 f"{user['name']} ({user['username']})")
+    return jsonify({k: v for k, v in user.items() if k != "password"})
+
+@app.route("/api/users/<uid>", methods=["DELETE"])
+@require_admin
+def delete_user(uid):
+    users = load_json(USERS_FILE, [])
+    original = len(users)
+    target = next((u for u in users if u["id"] == uid), None)
+    users = [u for u in users if u["id"] != uid]
+    if len(users) == original:
+        return jsonify({"error": "User not found"}), 404
+    save_json(USERS_FILE, users)
+    log_activity(request.current_user["username"], "Deleted user", "Users",
+                 f"{target['name']} ({target['username']})" if target else uid)
+    return jsonify({"message": "User deleted"})
+
+# ── Inventory ─────────────────────────────────────────────────────────────────
+@app.route("/api/inventory", methods=["GET"])
+@require_auth
+def get_inventory():
+    inv = load_json(INVENTORY_FILE, [])
+    q = request.args.get("q", "").lower()
+    cat = request.args.get("category", "")
+    if q:
+        inv = [i for i in inv if q in i["name"].lower() or q in i["sku"].lower()]
+    if cat:
+        inv = [i for i in inv if i["category"] == cat]
+    return jsonify(inv)
+
+@app.route("/api/inventory", methods=["POST"])
+@require_auth
+def add_inventory_item():
+    data = request.json or {}
+    inv = load_json(INVENTORY_FILE, [])
+    if any(i["sku"] == data.get("sku","") for i in inv):
+        return jsonify({"error": "SKU already exists"}), 409
+    item = {
+        "sku": data.get("sku","").upper(),
+        "name": data.get("name",""),
+        "category": data.get("category",""),
+        "qty": int(data.get("qty", 0)),
+        "unit": data.get("unit","PCS"),
+        "min_level": int(data.get("min_level", 0)),
+        "location": data.get("location",""),
+        "unit_cost": float(data.get("unit_cost", 0)),
+        "updated": today_str()
+    }
+    inv.append(item)
+    save_json(INVENTORY_FILE, inv)
+    log_activity(request.current_user["username"], "Added inventory item", "Inventory",
+                 f"{item['sku']} — {item['name']} (qty: {item['qty']})")
+    return jsonify(item), 201
+
+@app.route("/api/inventory/<sku>", methods=["PUT"])
+@require_auth
+def update_inventory_item(sku):
+    data = request.json or {}
+    inv = load_json(INVENTORY_FILE, [])
+    item = next((i for i in inv if i["sku"] == sku), None)
+    if not item:
+        return jsonify({"error": "SKU not found"}), 404
+    for field in ["name","category","qty","unit","min_level","location","unit_cost"]:
+        if field in data:
+            item[field] = data[field]
+    item["updated"] = today_str()
+    save_json(INVENTORY_FILE, inv)
+    log_activity(request.current_user["username"], "Updated inventory item", "Inventory",
+                 f"{item['sku']} — {item['name']}")
+    return jsonify(item)
+
+@app.route("/api/inventory/<sku>", methods=["DELETE"])
+@require_admin
+def delete_inventory_item(sku):
+    inv = load_json(INVENTORY_FILE, [])
+    original = len(inv)
+    target = next((i for i in inv if i["sku"] == sku), None)
+    inv = [i for i in inv if i["sku"] != sku]
+    if len(inv) == original:
+        return jsonify({"error": "SKU not found"}), 404
+    save_json(INVENTORY_FILE, inv)
+    log_activity(request.current_user["username"], "Deleted inventory item", "Inventory",
+                 f"{sku}" + (f" — {target['name']}" if target else ""))
+    return jsonify({"message": "Item deleted"})
+
+@app.route("/api/inventory/summary", methods=["GET"])
+@require_auth
+def inventory_summary():
+    inv = load_json(INVENTORY_FILE, [])
+    low_stock = [i for i in inv if i["qty"] < i["min_level"]]
+    total_value = sum(i["qty"] * i.get("unit_cost", 0) for i in inv)
+    cats = {}
+    for i in inv:
+        c = i["category"]
+        cats[c] = cats.get(c, 0) + 1
+    return jsonify({
+        "total_skus": len(inv),
+        "total_value": round(total_value, 2),
+        "low_stock_count": len(low_stock),
+        "low_stock_items": low_stock,
+        "by_category": cats
+    })
+
+# ── Transactions (Stock In/Out) ────────────────────────────────────────────────
+@app.route("/api/transactions", methods=["GET"])
+@require_auth
+def get_transactions():
+    txns = load_json(TRANSACTIONS_FILE, [])
+    t = request.args.get("type","")
+    if t:
+        txns = [tx for tx in txns if tx["type"] == t.upper()]
+    limit = int(request.args.get("limit", 100))
+    return jsonify(txns[-limit:][::-1])
+
+@app.route("/api/transactions", methods=["POST"])
+@require_auth
+def add_transaction():
+    data = request.json or {}
+    txn_type = data.get("type","").upper()
+    if txn_type not in ["IN","OUT"]:
+        return jsonify({"error": "type must be IN or OUT"}), 400
+    sku = data.get("sku","").upper()
+    qty = int(data.get("qty", 0))
+    if qty <= 0:
+        return jsonify({"error": "qty must be > 0"}), 400
+    # Update inventory
+    inv = load_json(INVENTORY_FILE, [])
+    item = next((i for i in inv if i["sku"] == sku), None)
+    if not item:
+        return jsonify({"error": f"SKU {sku} not found in inventory"}), 404
+    if txn_type == "OUT":
+        if item["qty"] < qty:
+            return jsonify({"error": f"Insufficient stock. Available: {item['qty']}"}), 409
+        item["qty"] -= qty
+    else:
+        item["qty"] += qty
+    item["updated"] = today_str()
+    save_json(INVENTORY_FILE, inv)
+    # Save transaction
+    txns = load_json(TRANSACTIONS_FILE, [])
+    txn = {
+        "id": str(uuid.uuid4()), "datetime": now_str(), "date": data.get("date", today_str()),
+        "type": txn_type, "sku": sku, "name": item["name"],
+        "qty": qty, "ref": data.get("ref","MANUAL"),
+        "party": data.get("party",""), "by": request.current_user["username"],
+        "status": "Completed", "notes": data.get("notes","")
+    }
+    txns.append(txn)
+    save_json(TRANSACTIONS_FILE, txns)
+    log_activity(request.current_user["username"], f"Stock {txn_type}", "Stock In/Out",
+                 f"{sku} — qty {qty}" + (f" — {data.get('party')}" if data.get("party") else ""))
+    return jsonify(txn), 201
+
+# ── Billing ───────────────────────────────────────────────────────────────────
+@app.route("/api/bills", methods=["GET"])
+@require_auth
+def get_bills():
+    bills = load_json(BILLS_FILE, [])
+    status = request.args.get("status","")
+    if status:
+        bills = [b for b in bills if b["status"] == status]
+    return jsonify(bills[::-1])
+
+@app.route("/api/bills", methods=["POST"])
+@require_auth
+def create_bill():
+    data = request.json or {}
+    bills = load_json(BILLS_FILE, [])
+    bill = {
+        "id": str(uuid.uuid4()),
+        "num": data.get("num", f"BILL-{str(len(bills)+1).zfill(4)}"),
+        "date": data.get("date", today_str()),
+        "customer": data.get("customer",""),
+        "items": data.get("items", []),
+        "amount": float(data.get("amount", 0)),
+        "status": "Pending",
+        "notes": data.get("notes",""),
+        "created_by": request.current_user["username"],
+        "created_at": now_str()
+    }
+    bills.append(bill)
+    save_json(BILLS_FILE, bills)
+    log_activity(request.current_user["username"], "Created bill", "Billing",
+                 f"{bill['num']} — {bill['customer']} — {bill['amount']}")
+    return jsonify(bill), 201
+
+@app.route("/api/bills/<bid>", methods=["PUT"])
+@require_auth
+def update_bill(bid):
+    data = request.json or {}
+    bills = load_json(BILLS_FILE, [])
+    bill = next((b for b in bills if b["id"] == bid), None)
+    if not bill:
+        return jsonify({"error": "Bill not found"}), 404
+    for field in ["status","notes","amount","customer"]:
+        if field in data:
+            bill[field] = data[field]
+    save_json(BILLS_FILE, bills)
+    log_activity(request.current_user["username"], "Updated bill", "Billing",
+                 f"{bill['num']} — {bill['customer']} — status: {bill['status']}")
+    return jsonify(bill)
+
+@app.route("/api/bills/summary", methods=["GET"])
+@require_auth
+def bill_summary():
+    bills = load_json(BILLS_FILE, [])
+    return jsonify({
+        "total": sum(b["amount"] for b in bills),
+        "paid": sum(b["amount"] for b in bills if b["status"] == "Paid"),
+        "pending": sum(b["amount"] for b in bills if b["status"] == "Pending"),
+        "overdue": sum(b["amount"] for b in bills if b["status"] == "Overdue"),
+        "count": len(bills)
+    })
+
+# ── Excel Import Engine ──────────────────────────────────────────────────────
+# Maps messy/real-world spreadsheet headers (like the ones in excel_templates/)
+# onto the fields our data stores use, then writes the parsed rows straight
+# into inventory.json / transactions.json so Inventory & Stock In/Out reflect
+# whatever the user uploads.
+
+def normalize_header(h):
+    if h is None:
+        return ""
+    h = str(h).split("\n")[0].lower()
+    h = re.sub(r"[^a-z0-9 ]", " ", h)
+    return re.sub(r"\s+", " ", h).strip()
+
+def map_columns(headers, rules):
+    """rules: ordered list of (field, [substrings]) — first match wins, each column used once."""
+    norm = [normalize_header(h) for h in headers]
+    used, out = set(), {}
+    for field, patterns in rules:
+        for idx, nh in enumerate(norm):
+            if idx in used or not nh:
+                continue
+            if any(p in nh for p in patterns):
+                out[field] = idx
+                used.add(idx)
+                break
+    return out
+
+def find_header_row(ws, max_scan=15):
+    """Find the row containing an 'SKU' column header; templates bury it under title/instruction rows."""
+    scan = min(ws.max_row, max_scan)
+    for r in range(1, scan + 1):
+        row_vals = [ws.cell(row=r, column=c).value for c in range(1, ws.max_column + 1)]
+        if any(normalize_header(v) == "sku" for v in row_vals):
+            return r, row_vals
+    for r in range(1, scan + 1):
+        row_vals = [ws.cell(row=r, column=c).value for c in range(1, ws.max_column + 1)]
+        if any(v is not None and str(v).strip() != "" for v in row_vals):
+            return r, row_vals
+    return 1, []
+
+def parse_number(val, default=0):
+    if val is None or str(val).strip() == "":
+        return default
+    try:
+        n = float(val)
+        return int(n) if n.is_integer() else n
+    except (TypeError, ValueError):
+        return default
+
+def parse_text(row, cols, field):
+    if field not in cols or cols[field] >= len(row):
+        return None
+    val = row[cols[field]]
+    if val is None or str(val).strip() == "":
+        return None
+    return str(val).strip()
+
+def parse_date_cell(val):
+    if val is None or str(val).strip() == "":
+        return None
+    if isinstance(val, datetime.datetime):
+        return val.date().isoformat()
+    if isinstance(val, datetime.date):
+        return val.isoformat()
+    s = str(val).strip()
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y"):
+        try:
+            return datetime.datetime.strptime(s, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+INVENTORY_RULES = [
+    ("sku", ["sku"]),
+    ("unit_cost", ["unit cost", "cost"]),
+    ("min_level", ["min stock", "min level", "minimum"]),
+    ("category", ["category"]),
+    ("location", ["location"]),
+    ("unit", ["unit"]),
+    ("qty", ["quantity", "qty"]),
+    ("name", ["item name", "name"]),
+]
+
+STOCK_IN_RULES = [
+    ("sku", ["sku"]),
+    ("unit_cost", ["unit cost"]),
+    ("qty", ["quantity received", "quantity", "qty"]),
+    ("ref", ["po reference", "po #", "reference", "po"]),
+    ("party", ["supplier"]),
+    ("unit", ["unit"]),
+    ("name", ["item name", "name"]),
+    ("date", ["date"]),
+    ("notes", ["notes"]),
+]
+
+STOCK_OUT_RULES = [
+    ("sku", ["sku"]),
+    ("qty", ["quantity dispatched", "quantity", "qty"]),
+    ("ref", ["delivery order", "do #", "reference"]),
+    ("party", ["customer"]),
+    ("destination", ["destination", "address"]),
+    ("by", ["dispatched by"]),
+    ("unit", ["unit"]),
+    ("name", ["item name", "name"]),
+    ("date", ["date"]),
+    ("notes", ["notes"]),
+]
+
+def iter_data_rows(ws, header_row):
+    for r in range(header_row + 1, ws.max_row + 1):
+        row = [ws.cell(row=r, column=c).value for c in range(1, ws.max_column + 1)]
+        if any(v is not None and str(v).strip() != "" for v in row):
+            yield r, row
+
+def import_inventory_excel(path):
+    """Inventory uploads are treated as a snapshot: each SKU's qty/details are set to the file's values."""
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb.active
+    header_row, headers = find_header_row(ws)
+    cols = map_columns(headers, INVENTORY_RULES)
+    if "sku" not in cols:
+        return {"added": 0, "updated": 0, "skipped": 0, "errors": ["Couldn't find a SKU column in this file — check it matches the inventory template."]}
+
+    inv = load_json(INVENTORY_FILE, [])
+    by_sku = {i["sku"]: i for i in inv}
+    added = updated = skipped = 0
+    errors = []
+
+    for r, row in iter_data_rows(ws, header_row):
+        sku = (parse_text(row, cols, "sku") or "").upper()
+        if not sku:
+            skipped += 1
+            errors.append(f"Row {r}: missing SKU, skipped")
+            continue
+        name       = parse_text(row, cols, "name")
+        category   = parse_text(row, cols, "category")
+        unit       = parse_text(row, cols, "unit")
+        location   = parse_text(row, cols, "location")
+        qty        = parse_number(row[cols["qty"]]) if "qty" in cols else None
+        min_level  = parse_number(row[cols["min_level"]]) if "min_level" in cols else None
+        unit_cost  = parse_number(row[cols["unit_cost"]]) if "unit_cost" in cols else None
+
+        if sku in by_sku:
+            item = by_sku[sku]
+            if name is not None: item["name"] = name
+            if category is not None: item["category"] = category
+            if qty is not None: item["qty"] = qty
+            if unit is not None: item["unit"] = unit
+            if min_level is not None: item["min_level"] = min_level
+            if location is not None: item["location"] = location
+            if unit_cost is not None: item["unit_cost"] = unit_cost
+            item["updated"] = today_str()
+            updated += 1
+        else:
+            item = {
+                "sku": sku, "name": name or sku, "category": category or "Other",
+                "qty": qty or 0, "unit": unit or "PCS", "min_level": min_level or 0,
+                "location": location or "", "unit_cost": unit_cost or 0,
+                "updated": today_str()
+            }
+            inv.append(item)
+            by_sku[sku] = item
+            added += 1
+
+    save_json(INVENTORY_FILE, inv)
+    return {"added": added, "updated": updated, "skipped": skipped, "errors": errors}
+
+def import_stock_excel(path, txn_type, username):
+    """Stock In/Out uploads create one transaction per row and add/remove qty from inventory."""
+    rules = STOCK_IN_RULES if txn_type == "IN" else STOCK_OUT_RULES
+    wb = openpyxl.load_workbook(path, data_only=True)
+    ws = wb.active
+    header_row, headers = find_header_row(ws)
+    cols = map_columns(headers, rules)
+    if "sku" not in cols or "qty" not in cols:
+        return {"processed": 0, "skipped": 0, "errors": ["Couldn't find SKU/Quantity columns in this file — check it matches the stock template."]}
+
+    inv = load_json(INVENTORY_FILE, [])
+    by_sku = {i["sku"]: i for i in inv}
+    txns = load_json(TRANSACTIONS_FILE, [])
+    processed = skipped = 0
+    errors = []
+
+    for r, row in iter_data_rows(ws, header_row):
+        sku = (parse_text(row, cols, "sku") or "").upper()
+        qty = parse_number(row[cols["qty"]], default=0)
+        if not sku:
+            skipped += 1
+            errors.append(f"Row {r}: missing SKU, skipped")
+            continue
+        if not qty or qty <= 0:
+            skipped += 1
+            errors.append(f"Row {r} ({sku}): invalid quantity, skipped")
+            continue
+
+        name      = parse_text(row, cols, "name")
+        unit_cost = parse_number(row[cols["unit_cost"]]) if "unit_cost" in cols else None
+        ref       = parse_text(row, cols, "ref") or "BULK-IMPORT"
+        party     = parse_text(row, cols, "party") or ""
+        notes     = parse_text(row, cols, "notes") or ""
+        date_val  = parse_date_cell(row[cols["date"]]) if "date" in cols else None
+
+        item = by_sku.get(sku)
+        if not item:
+            if txn_type == "OUT":
+                skipped += 1
+                errors.append(f"Row {r}: SKU {sku} not found in inventory, skipped")
+                continue
+            item = {
+                "sku": sku, "name": name or sku, "category": "Other",
+                "qty": 0, "unit": parse_text(row, cols, "unit") or "PCS",
+                "min_level": 0, "location": "", "unit_cost": unit_cost or 0,
+                "updated": today_str()
+            }
+            inv.append(item)
+            by_sku[sku] = item
+
+        if txn_type == "OUT":
+            if item["qty"] < qty:
+                skipped += 1
+                errors.append(f"Row {r}: insufficient stock for {sku} (have {item['qty']}, need {qty}), skipped")
+                continue
+            item["qty"] -= qty
+        else:
+            item["qty"] += qty
+            if unit_cost:
+                item["unit_cost"] = unit_cost
+        item["updated"] = today_str()
+
+        txns.append({
+            "id": str(uuid.uuid4()), "datetime": now_str(), "date": date_val or today_str(),
+            "type": txn_type, "sku": sku, "name": item["name"], "qty": qty,
+            "ref": ref, "party": party, "by": username, "status": "Completed", "notes": notes
+        })
+        processed += 1
+
+    save_json(INVENTORY_FILE, inv)
+    save_json(TRANSACTIONS_FILE, txns)
+    return {"processed": processed, "skipped": skipped, "errors": errors}
+
+# ── File Upload ───────────────────────────────────────────────────────────────
+ALLOWED_EXTENSIONS = {".xlsx", ".xls"}
+MAX_SCAN_BYTES = 20 * 1024 * 1024  # matches MAX_CONTENT_LENGTH
+
+def update_file_status(fid, status, extra=None):
+    """Update the status field of a file's metadata entry and persist it."""
+    meta = load_json(FILES_META_FILE, [])
+    entry = next((m for m in meta if m["id"] == fid), None)
+    if entry:
+        entry["status"] = status
+        entry["status_updated_at"] = now_str()
+        if extra:
+            entry.update(extra)
+        save_json(FILES_META_FILE, meta)
+    return entry
+
+def basic_file_scan(path, ext):
+    """A lightweight 'virus/integrity scan' stage: checks extension, size, and that
+    the file actually opens as a valid workbook (for .xlsx). Returns (ok, reason)."""
+    if ext not in ALLOWED_EXTENSIONS:
+        return False, "Unsupported file extension"
+    size = path.stat().st_size
+    if size == 0:
+        return False, "File is empty"
+    if size > MAX_SCAN_BYTES:
+        return False, "File exceeds maximum allowed size"
+    if ext == ".xlsx":
+        try:
+            wb = openpyxl.load_workbook(path, read_only=True)
+            wb.close()
+        except Exception as e:
+            return False, f"File failed integrity check: {e}"
+    return True, "OK"
+
+@app.route("/api/files/upload", methods=["POST"])
+@require_auth
+def upload_file():
+    username = request.current_user["username"]
+
+    if "file" not in request.files:
+        log_activity(username, "File upload rejected", "Files", "No file provided", status="error")
+        return jsonify({"error": "No file provided"}), 400
+    f = request.files["file"]
+    ext = Path(f.filename).suffix.lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        log_activity(username, "File upload rejected", "Files",
+                      f"{f.filename} — only .xlsx and .xls files allowed", status="error")
+        return jsonify({"error": "Only .xlsx and .xls files allowed"}), 400
+
+    file_type = request.form.get("type", "inventory")
+    date_str  = request.form.get("date", today_str())
+    safe_name = f"{file_type}_{date_str}_{uuid.uuid4().hex[:8]}{ext}"
+    save_path = FILES_DIR / safe_name
+
+    # Create the metadata entry up-front so the Files page can show live progress.
+    fid = str(uuid.uuid4())
+    meta = load_json(FILES_META_FILE, [])
+    entry = {
+        "id": fid, "filename": safe_name,
+        "original_name": f.filename, "type": file_type,
+        "date": date_str, "size_kb": 0,
+        "uploaded_by": username,
+        "uploaded_at": now_str(),
+        "status": "uploading",
+        "status_updated_at": now_str(),
+    }
+    meta.append(entry)
+    save_json(FILES_META_FILE, meta)
+    log_activity(username, "File upload started", "Files",
+                 f"{f.filename} ({file_type})", status="info", meta={"file_id": fid})
+
+    # ── Stage 1: Uploading (write bytes to disk) ──────────────────────────────
+    try:
+        f.save(save_path)
+    except Exception as e:
+        update_file_status(fid, "error", {"error": f"Could not save file: {e}"})
+        log_activity(username, "File upload failed", "Files", f"{f.filename} — {e}", status="error",
+                     meta={"file_id": fid})
+        return jsonify({"error": f"Could not save file: {e}"}), 500
+
+    size_kb = round(save_path.stat().st_size / 1024, 1)
+    update_file_status(fid, "uploaded", {"size_kb": size_kb})
+    log_activity(username, "File uploaded", "Files", f"{f.filename} ({size_kb} KB)", status="success",
+                 meta={"file_id": fid})
+
+    # ── Stage 2: Scanning (basic integrity / safety checks) ───────────────────
+    update_file_status(fid, "scanning")
+    log_activity(username, "Scanning file", "Files", f.filename, status="info", meta={"file_id": fid})
+    ok, reason = basic_file_scan(save_path, ext)
+    if not ok:
+        update_file_status(fid, "error", {"error": reason})
+        log_activity(username, "File scan failed", "Files", f"{f.filename} — {reason}", status="error",
+                     meta={"file_id": fid})
+        return jsonify({"id": fid, "filename": safe_name, "status": "error", "error": reason}), 400
+    log_activity(username, "File scan passed", "Files", f.filename, status="success", meta={"file_id": fid})
+
+    # ── Stage 3: Processing (parse spreadsheet into inventory/transactions) ───
+    update_file_status(fid, "processing")
+    log_activity(username, "Processing file", "Files", f"{f.filename} — importing as {file_type}",
+                 status="info", meta={"file_id": fid})
+
+    import_result = None
+    if ext == ".xlsx":
+        try:
+            if file_type == "inventory":
+                import_result = import_inventory_excel(save_path)
+            elif file_type == "stock_in":
+                import_result = import_stock_excel(save_path, "IN", username)
+            elif file_type == "stock_out":
+                import_result = import_stock_excel(save_path, "OUT", username)
+        except Exception as e:
+            import_result = {"error": f"Could not read this file: {e}"}
+    elif file_type in ("inventory", "stock_in", "stock_out"):
+        import_result = {"error": "Old .xls format can't be imported automatically — please save as .xlsx and re-upload."}
+
+    if import_result and import_result.get("error"):
+        update_file_status(fid, "error", {"error": import_result["error"], "import_result": import_result})
+        log_activity(username, "File processing failed", "Files",
+                     f"{f.filename} — {import_result['error']}", status="error", meta={"file_id": fid})
+    else:
+        # ── Stage 4: Done ───────────────────────────────────────────────────
+        update_file_status(fid, "done", {"import_result": import_result})
+        if import_result:
+            if file_type == "inventory":
+                summary = f"{import_result.get('added',0)} added, {import_result.get('updated',0)} updated, {import_result.get('skipped',0)} skipped"
+            else:
+                summary = f"{import_result.get('processed',0)} transactions recorded, {import_result.get('skipped',0)} skipped"
+        else:
+            summary = "stored (not auto-processed)"
+        log_activity(username, "File processing done", "Files", f"{f.filename} — {summary}",
+                     status="success", meta={"file_id": fid})
+
+    # Purge old files (retention policy)
+    meta = load_json(FILES_META_FILE, [])
+    settings = load_json(SETTINGS_FILE, default_settings())
+    retention = settings.get("retention_days", 30)
+    cutoff = datetime.date.today() - datetime.timedelta(days=retention)
+    meta = [m for m in meta if datetime.date.fromisoformat(m["date"]) >= cutoff or not (FILES_DIR / m["filename"]).exists()]
+    save_json(FILES_META_FILE, meta)
+
+    final_entry = next((m for m in meta if m["id"] == fid), entry)
+    response = dict(final_entry)
+    response["import_result"] = import_result
+    return jsonify(response), 201
+
+@app.route("/api/files", methods=["GET"])
+@require_auth
+def list_files():
+    meta = load_json(FILES_META_FILE, [])
+    t = request.args.get("type","")
+    if t:
+        meta = [m for m in meta if m["type"] == t]
+    return jsonify(meta[::-1])
+
+@app.route("/api/files/<fid>", methods=["DELETE"])
+@require_auth
+def delete_file(fid):
+    meta = load_json(FILES_META_FILE, [])
+    entry = next((m for m in meta if m["id"] == fid), None)
+    if not entry:
+        return jsonify({"error": "File not found"}), 404
+    path = FILES_DIR / entry["filename"]
+    if path.exists():
+        path.unlink()
+    meta = [m for m in meta if m["id"] != fid]
+    save_json(FILES_META_FILE, meta)
+    log_activity(request.current_user["username"], "Deleted file", "Files",
+                 entry.get("original_name", entry["filename"]))
+    return jsonify({"message": "File deleted"})
+
+@app.route("/api/files/<fid>/download", methods=["GET"])
+@require_auth
+def download_file(fid):
+    meta = load_json(FILES_META_FILE, [])
+    entry = next((m for m in meta if m["id"] == fid), None)
+    if not entry:
+        return jsonify({"error": "File not found"}), 404
+    path = FILES_DIR / entry["filename"]
+    if not path.exists():
+        return jsonify({"error": "File missing from disk"}), 404
+    return send_file(path, as_attachment=True, download_name=entry["original_name"])
+
+# ── Templates ─────────────────────────────────────────────────────────────────
+@app.route("/api/templates", methods=["GET"])
+@require_auth
+def list_templates():
+    templates = []
+    for f in TEMPL_DIR.glob("*.xlsx"):
+        templates.append({"filename": f.name, "size_kb": round(f.stat().st_size / 1024, 1)})
+    return jsonify(templates)
+
+@app.route("/api/templates/<filename>", methods=["GET"])
+@require_auth
+def download_template(filename):
+    safe = Path(filename).name
+    path = TEMPL_DIR / safe
+    if not path.exists() or path.suffix != ".xlsx":
+        return jsonify({"error": "Template not found"}), 404
+    return send_file(path, as_attachment=True, download_name=safe)
+
+# ── Settings ──────────────────────────────────────────────────────────────────
+@app.route("/api/settings", methods=["GET"])
+@require_auth
+def get_settings():
+    return jsonify(load_json(SETTINGS_FILE, default_settings()))
+
+@app.route("/api/settings", methods=["PUT"])
+@require_admin
+def update_settings():
+    data = request.json or {}
+    settings = load_json(SETTINGS_FILE, default_settings())
+    allowed = ["warehouse_name","location","manager","phone","currency","date_format","retention_days","vat_percent"]
+    changed = []
+    for k in allowed:
+        if k in data:
+            settings[k] = data[k]
+            changed.append(k)
+    save_json(SETTINGS_FILE, settings)
+    log_activity(request.current_user["username"], "Updated settings", "Settings",
+                 f"Changed: {', '.join(changed)}" if changed else "No fields changed")
+    return jsonify(settings)
+
+# ── Customers ─────────────────────────────────────────────────────────────────
+# A "customer" is anyone goods or invoices went out to: the customer field on a
+# bill, or the party field on an OUT stock transaction. There's no separate
+# customers.json — customers are derived live from bills + transactions so the
+# list never goes stale relative to actual billing/dispatch activity.
+def build_customer_index():
+    """Returns dict: customer_name -> {bills, stock_outs, total_billed, total_dispatched,
+    handled_by: {username: count}, last_activity}."""
+    bills = load_json(BILLS_FILE, [])
+    txns  = load_json(TRANSACTIONS_FILE, [])
+    idx = {}
+
+    def touch(name):
+        name = (name or "").strip()
+        if not name:
+            return None
+        if name not in idx:
+            idx[name] = {
+                "customer": name, "bills": 0, "stock_outs": 0,
+                "total_billed": 0.0, "total_dispatched_qty": 0,
+                "handled_by": {}, "last_activity": None
+            }
+        return idx[name]
+
+    for b in bills:
+        rec = touch(b.get("customer"))
+        if not rec:
+            continue
+        rec["bills"] += 1
+        rec["total_billed"] += float(b.get("amount", 0))
+        handler = b.get("created_by", "—")
+        rec["handled_by"][handler] = rec["handled_by"].get(handler, 0) + 1
+        ts = b.get("created_at") or b.get("date")
+        if ts and (rec["last_activity"] is None or ts > rec["last_activity"]):
+            rec["last_activity"] = ts
+
+    for t in txns:
+        if t.get("type") != "OUT":
+            continue
+        rec = touch(t.get("party"))
+        if not rec:
+            continue
+        rec["stock_outs"] += 1
+        rec["total_dispatched_qty"] += t.get("qty", 0)
+        handler = t.get("by", "—")
+        rec["handled_by"][handler] = rec["handled_by"].get(handler, 0) + 1
+        ts = t.get("datetime")
+        if ts and (rec["last_activity"] is None or ts > rec["last_activity"]):
+            rec["last_activity"] = ts
+
+    return idx
+
+@app.route("/api/customers", methods=["GET"])
+@require_auth
+def get_customers():
+    """Full customer list, each with totals and a breakdown of which users handled them."""
+    idx = build_customer_index()
+    customers = sorted(idx.values(), key=lambda c: c["customer"].lower())
+    for c in customers:
+        c["handled_by"] = [{"username": u, "count": n} for u, n in sorted(c["handled_by"].items(), key=lambda kv: -kv[1])]
+    return jsonify(customers)
+
+@app.route("/api/customers/by-user", methods=["GET"])
+@require_auth
+def get_customers_by_user():
+    """Customers grouped by the user who manages/handles them (created the bill or dispatch)."""
+    idx = build_customer_index()
+    by_user = {}
+    for c in idx.values():
+        for username in c["handled_by"].keys():
+            by_user.setdefault(username, set()).add(c["customer"])
+    result = [
+        {"username": u, "customer_count": len(names), "customers": sorted(names)}
+        for u, names in sorted(by_user.items())
+    ]
+    return jsonify(result)
+
+# ── Activity Log ──────────────────────────────────────────────────────────────
+@app.route("/api/logs", methods=["GET"])
+@require_auth
+def get_logs():
+    """Admins see the full audit trail; Staff/Manager see only their own actions."""
+    logs = load_json(LOGS_FILE, [])
+    if request.current_user.get("role") != "Admin":
+        logs = [l for l in logs if l["username"] == request.current_user["username"]]
+
+    category = request.args.get("category", "")
+    username = request.args.get("username", "")
+    q        = request.args.get("q", "").lower()
+    if category:
+        logs = [l for l in logs if l["category"] == category]
+    if username:
+        logs = [l for l in logs if l["username"] == username]
+    if q:
+        logs = [l for l in logs if q in l.get("action","").lower() or q in l.get("details","").lower()]
+
+    limit = int(request.args.get("limit", 200))
+    logs = logs[::-1][:limit]
+    return jsonify(logs)
+
+@app.route("/api/logs/categories", methods=["GET"])
+@require_auth
+def get_log_categories():
+    logs = load_json(LOGS_FILE, [])
+    if request.current_user.get("role") != "Admin":
+        logs = [l for l in logs if l["username"] == request.current_user["username"]]
+    cats = sorted(set(l["category"] for l in logs))
+    return jsonify(cats)
+
+# ── Dashboard Summary ─────────────────────────────────────────────────────────
+@app.route("/api/dashboard", methods=["GET"])
+@require_auth
+def dashboard():
+    inv     = load_json(INVENTORY_FILE, [])
+    txns    = load_json(TRANSACTIONS_FILE, [])
+    bills   = load_json(BILLS_FILE, [])
+    today   = today_str()
+    today_txns = [t for t in txns if t["datetime"].startswith(today)]
+
+    cats = {}
+    for i in inv:
+        c = i.get("category", "Other")
+        cats[c] = cats.get(c, 0) + i.get("qty", 0)
+    category_summary = [{"category": c, "total_qty": q} for c, q in sorted(cats.items())]
+
+    customer_idx = build_customer_index()
+    customers_sorted = sorted(customer_idx.values(), key=lambda c: c["customer"].lower())
+    by_user = {}
+    for c in customer_idx.values():
+        for username in c["handled_by"].keys():
+            by_user.setdefault(username, set()).add(c["customer"])
+    customers_by_user = [
+        {"username": u, "customer_count": len(names), "customers": sorted(names)}
+        for u, names in sorted(by_user.items())
+    ]
+
+    return jsonify({
+        "stats": {
+            "total_items": len(inv),
+            "total_value": round(sum(i["qty"] * i.get("unit_cost", 0) for i in inv), 2),
+            "stock_in_today": sum(t["qty"] for t in today_txns if t["type"] == "IN"),
+            "stock_out_today": sum(t["qty"] for t in today_txns if t["type"] == "OUT"),
+            "pending_bills": len([b for b in bills if b["status"] == "Pending"]),
+            "pending_value": sum(b["amount"] for b in bills if b["status"] == "Pending"),
+            "total_customers": len(customer_idx),
+        },
+        "low_stock": [i for i in inv if i["qty"] < i["min_level"]],
+        "category_summary": category_summary,
+        "recent_activity": [
+            {**t, "date": t.get("date") or t["datetime"][:10]} for t in txns[-8:][::-1]
+        ],
+        "customers": customers_sorted,
+        "customers_by_user": customers_by_user,
+        # legacy/flat fields kept for any other consumers of this endpoint
+        "total_skus": len(inv),
+        "total_value": round(sum(i["qty"] * i.get("unit_cost",0) for i in inv), 2),
+        "low_stock_legacy": [i for i in inv if i["qty"] < i["min_level"]],
+        "today_in": sum(t["qty"] for t in today_txns if t["type"]=="IN"),
+        "today_out": sum(t["qty"] for t in today_txns if t["type"]=="OUT"),
+        "pending_bills": len([b for b in bills if b["status"]=="Pending"]),
+        "pending_value": sum(b["amount"] for b in bills if b["status"]=="Pending"),
+        "recent_transactions": txns[-8:][::-1]
+    })
+
+# ── Reports ───────────────────────────────────────────────────────────────────
+@app.route("/api/reports/movement", methods=["GET"])
+@require_auth
+def movement_report():
+    txns = load_json(TRANSACTIONS_FILE, [])
+    days = {}
+    for t in txns:
+        d = t["datetime"][:10]
+        days.setdefault(d, {"in": 0, "out": 0})
+        if t["type"] == "IN": days[d]["in"] += t["qty"]
+        else: days[d]["out"] += t["qty"]
+    return jsonify(sorted(days.items()))
+
+if __name__ == "__main__":
+    print("=" * 60)
+    print("  Mohammad Siddiq Warehouse Management System — Backend")
+    print("=" * 60)
+    print(f"  API running at: http://localhost:5050")
+    print(f"  Data directory: {DATA_DIR}")
+    print(f"  Default login:  admin / admin123")
+    print("=" * 60)
+    app.run(host="0.0.0.0", port=5050, debug=True)

@@ -1,0 +1,51 @@
+{
+  "inventory": {
+    "sku": "SKU",
+    "name": "Item Name",
+    "customer_name": "Customer",
+    "qty": "Quantity",
+    "unit": "Unit",
+    "unit_cost": "Unit Cost",
+    "min_level": "Min Stock",
+    "location": "Location"
+  },
+  "stock_in": {
+    "sku": "SKU",
+    "name": "Item Name",
+    "customer_name": "Customer",
+    "qty": "Quantity Received",
+    "unit": "Unit",
+    "unit_cost": "Unit Cost",
+    "ref": "PO Reference",
+    "date": "Date",
+    "notes": "Notes"
+  },
+  "stock_out": {
+    "sku": "SKU",
+    "name": "Item Name",
+    "customer_name": "Customer",
+    "qty": "Quantity Dispatched",
+    "unit": "Unit",
+    "ref": "Delivery Order",
+    "date": "Date",
+    "notes": "Notes"
+  },
+  "daily_report": {
+    "date": "Date",
+    "customer_name": "Customer",
+    "sku": "SKU",
+    "name": "Item Name",
+    "type": "IN/OUT",
+    "qty": "Quantity",
+    "ref": "Reference",
+    "by": "Handled By"
+  },
+  "billing": {
+    "bill_num": "Bill No",
+    "date": "Date",
+    "customer": "Customer",
+    "amount": "Amount (SAR)",
+    "status": "Status",
+    "created_by": "Created By"
+  }
+}

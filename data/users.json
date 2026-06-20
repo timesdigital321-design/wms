@@ -1,0 +1,55 @@
+[
+  {
+    "id": "u1",
+    "name": "Mohammad Siddiq",
+    "username": "admin",
+    "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+    "role": "Admin",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "Reports",
+      "Activity Log"
+    ],
+    "status": "Active",
+    "created": "2026-06-18",
+    "last_login": "2026-06-20T02:21:06"
+  },
+  {
+    "id": "u2",
+    "name": "Ahmed Al-Rashid",
+    "username": "staff",
+    "password": "10176e7b7b24d317acfcf8d2064cfd2f24e154f7b5a96603077d5ef813d6a6b6",
+    "role": "Staff",
+    "access": [
+      "Dashboard",
+      "Inventory",
+      "Stock In/Out",
+      "Activity Log",
+      "File Upload"
+    ],
+    "status": "Active",
+    "created": "2026-06-18",
+    "last_login": "2026-06-18T16:24:31"
+  },
+  {
+    "id": "abafbbe5-16e9-46b6-9900-a3692a0e67c6",
+    "name": "mohds",
+    "username": "mm",
+    "password": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+    "role": "Staff",
+    "access": [
+      "Dashboard",
+      "Activity Log",
+      "Inventory",
+      "Stock In/Out",
+      "Billing",
+      "File Upload"
+    ],
+    "status": "Active",
+    "created": "2026-06-18",
+    "last_login": "2026-06-18T16:30:38"
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "warehouse_name": "Mohammad Siddiq Warehouse",
+  "location": "Riyadh, Saudi Arabia",
+  "manager": "Mohammad Siddiq",
+  "phone": "+966 5X XXX XXXX",
+  "currency": "SAR",
+  "date_format": "DD/MM/YYYY",
+  "retention_days": 30,
+  "vat_percent": 15
+}

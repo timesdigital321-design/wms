@@ -1,0 +1,50 @@
+[
+  {
+    "id": "c1",
+    "name": "Al-Noor Supplies",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "assigned_to": "admin",
+    "created_by": "admin",
+    "created_at": "2026-06-19T07:19:31",
+    "status": "Active",
+    "notes": ""
+  },
+  {
+    "id": "c2",
+    "name": "Gulf Industries",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "assigned_to": "staff",
+    "created_by": "admin",
+    "created_at": "2026-06-19T07:19:31",
+    "status": "Active",
+    "notes": ""
+  },
+  {
+    "id": "c3",
+    "name": "Industrial Corp KSA",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "assigned_to": "admin",
+    "created_by": "admin",
+    "created_at": "2026-06-19T07:19:31",
+    "status": "Active",
+    "notes": ""
+  },
+  {
+    "id": "c4",
+    "name": "Riyadh Packaging Co",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "assigned_to": "staff",
+    "created_by": "staff",
+    "created_at": "2026-06-19T07:19:31",
+    "status": "Active",
+    "notes": ""
+  }
+]
